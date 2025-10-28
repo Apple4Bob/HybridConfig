@@ -1,0 +1,24 @@
+function Convert-TotalItemSizeToMB {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$TotalItemSizeString
+    )
+
+    try {
+        $bytes = [int64]($TotalItemSizeString.Split('(')[1].Split(' ')[0])
+        $sizeMB = [math]::Round($bytes / 1MB, 2)
+        return $sizeMB
+    } catch {
+        Write-Warning "Format inattendu : impossible de convertir la taille."
+        return $null
+    }
+}
+
+
+$stats = Import-PSFClixml .\stats_mbx.PSXML.zip
+$stats | Select -last 4 MailboxGuid,DisplayName,@{ n="TypeMailbox"; e={ $_.MailboxTypeDetail.Value }},TotalItemSize,@{ n="SizeMb"; e={ Convert-TotalItemSizeToMB($_.TotalItemSize) }}, ItemCount,Database,ServerName,LastLogonTime,IsArchiveMailbox,LegacyDN  | ft
+
+$stats | Select MailboxGuid,DisplayName,@{n="TypeMailbox";e={ $_.MailboxTypeDetail.Value }},TotalItemSize,@{n="SizeMb";e={ Convert-TotalItemSizeToMB($_.TotalItemSize) }}, ItemCount,Database,ServerName,LastLogonTime,IsArchiveMailbox,LegacyDN | Export-Excel Rapports_EXC.xlsx -WorksheetName StatsMBX
+Import-PSFClixml .\stats_archives.PSXML.zip | Select MailboxGuid,DisplayName,@{n="TypeMailbox";e={ $_.MailboxTypeDetail.Value }},TotalItemSize,@{ n="SizeMb"; e={ Convert-TotalItemSizeToMB($_.TotalItemSize) }}, ItemCount,Database,ServerName,LastLogonTime,IsArchiveMailbox,LegacyDN | Export-Excel Rapports_EXC.xlsx -WorksheetName StatsArchives
+
+
