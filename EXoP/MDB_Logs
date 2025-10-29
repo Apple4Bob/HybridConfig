@@ -1,0 +1,6 @@
+# Combien de fichiers journaux sont générés par serveur à chaque minute ?
+Get-MailboxDatabase -Server <Mailbox Server Name> | ?{ %{$_.DatabaseCopies | ?{$_.ReplayLagTime -ne [TimeSpan]::Zero -And $_.HostServerName -eq $env:ComputerName} } } | %{ $count = 0; $MinT = [DateTime]::MaxValue; $MaxT = [DateTime]::MinValue; Get-ChildItem -Path $_.LogFolderPath -Filter "*????.log" | %{ $count = $count + 1; if($_.LastWriteTime -gt $MaxT){ $MaxT = $_.LastWriteTime}; if($_.LastWriteTime -lt $MinT){ $MinT= $_.LastWriteTime} }; ($count / ($MaxT.Subtract($MinT)).TotalMinutes) } | Measure-Object -Min -Max -Ave
+
+# Status + Remain
+Get-MailboxDatabase -Status | Select Name,Server,DatabaseSize,AvailableNewMailboxSpace
+
