@@ -1,0 +1,70 @@
+Diagnostiquer les problèmes Exchange
+Ce guide permet de diagnostiquer les problèmes avec Microsoft Exchange. Si rien n'est précisé, les toutes les commandes proposées ont à utiliser dans un invité de commande Echange (Exchange Management Shell).
+
+Dans un premier temps, un tour rapide sur la commande de diagnostique Microsoft s'impose :
+
+    Get-ExchangeServer |  Get-HealthReport | Where-Object {$_.AlertValue -eq "UnHealthy"}
+Pour avoir les details des tests d'un set, utilisez la commande suivante :
+
+    Get-ServerHealth -HealthSet $HealthSet -Server $YourServer | Format-Table Name, AlertValue -Auto
+Collecte des logs
+Pour collecter les logs, nous recommandons d'utiliser le script ExchangeLogCollector. L'article du blog Microsoft Exchagne log collector script explique comment correctement l'utiliser.
+
+Les logs particulièrement intéressants se trouvent dans les dossiers ci-dessous :
+
+C:\Program Files\Microsoft\Exchange Server\V15\Logging\HttpProxy\RpcHttp
+C:\Program Files\Microsoft\Exchange Server\V15\Logging\HttpProxy\Mapi
+C:\Program Files\Microsoft\Exchange Server\V15\Logging\HttpProxy\AutoDiscover
+C:\Windows\System32\LogFiles\HTTPERR
+C:\Program Files\Microsoft\Exchange Server\V16\Logging\Diagnostics\DailyPerformanceLogs
+Le logiciel Log Parser Studio peut aussi permettre de rechercher plus facilement les problème dans les logs.
+
+Test de connectivité
+Pour la connectivité, il faut dans un premier temps comprendre le fonctionnement d'Exchange et quel protocole est utilisé par le client pour orienter les recherches.
+
+Client	Autodiscover	Outlook Anyware1)	MAPI over HTTP	ActiveSync	POP / IMAP
+Outlook (iOS et Android)	Non	Non	Non	Oui	Non
+GMail (Android)	Non	Non	Non	Oui	Non
+Samsung Mail	Non	Non	Non	Oui	Non
+Outlook PC 2007 et 2010	Oui	Oui	Non	Non	Non
+Outlook 2011 (Mac)	Oui	Oui	Non	Non	Non
+Outlook 2013 et 2016	Oui	Oui	Oui	Non	Non
+Outlook 2019	Oui	Non	Oui	Non	Non
+Autre	Non	Non	Non	Non	Oui
+Une fois le protocole identifié, il convient de noter aussi les différents protocoles d'authentification mis en place. Voici la liste des protocoles disponibles sur Exchange :
+
+Basic
+NTLM
+Negociate
+oAuth
+Test en ligne
+Première étape, faire un test en ligne avec les outils de Microsoft sur le site suivant : https://testconnectivity.microsoft.com/
+
+Cliquez sur Exchange Server pour les tests vers un serveur Exchange On Premise (hébergé par vos soins). Les tests proposés sont les suivants :
+
+Exchange ActiveSync pour les problèmes de connexion des périphériques mobiles (tablettes / smartphones).
+Connectivité Outlook pour tester les protocoles utilisés par Outlook, notamment MAPI over HTTP, Outlook Anywhere et Autodiscover.
+Synchronisation, notification, disponibilité et réponses automatiques test les API Exchange, notamment utilisé pour paramétrer le compte.
+Les autres tests proposés ne sont pas directement utiles dans le diagnostique Outlook.
+
+Vous pouvez aussi faire régulièrement des test d'envoi et réception de mail pour s'assurer du bon cheminement des emails.
+Journal Outlook
+Pour avoir des journaux sur le fonctionnement Outlook, il faut utiliser l'assistant SARA proposé par Microsoft. Une fois lancé, choisir “Diagnostics avancés”. Les autres options de l'outil concerne les comptes Office 365.
+
+Tests de connectivité via PowerShell
+Microsoft fourni un outil en PowerShell pour tester la connectivité d'une boite. La commande est sous la forme suivante :
+
+  Test-OutlookConnectivity -ProbeIdentity $ProbeTest -MailboxID $mailbox
+Le $ProbeTest correspond au test à effectuer. Il peut s'agir d'un des tests suivants pour ce qui est RPC over HTTP (Outlook Anywhere) :
+
+Outlook.Protocol\OutlookRpcSelfTestProbe : vérifie seulement si le port écoute.
+Outlook.Protocol\OutlookRpcDeepTestProbe : test de se connecter à la première mailbox database.
+Outlook.Protocol\OutlookRpcDeepTestProbe\MaiboxDatabaseName : test de se connecter à la mailbox database MailboxDatabaseName
+Pour ce qui concerne MAPI over HTTP, il suffit de remplacer Rpc par MapiHttp et Outlook.Protocol par OutlookMapiHttp.Protocol, ce qui donne respectivement :
+
+OutlookMapiHttp.Protocol\OutlookMapiHttpSelfTestProbe : vérifie seulement si le port écoute.
+OutlookMapiHttp.Protocol\OutlookMapiHttpDeepTestProbe : test de se connecter à la première mailbox database.
+OutlookMapiHttp.Protocol\OutlookMapiHttpDeepTestProbe\MaiboxDatabaseName : test de se connecter à la mailbox database MailboxDatabaseName
+
+
+https://wiki.sadmin.fr/applications/bureautique/exchange/diagnostiques
